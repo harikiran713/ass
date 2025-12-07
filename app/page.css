@@ -13,6 +13,9 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .app-header h1 {
@@ -20,48 +23,21 @@
   font-weight: 600;
   color: #111827;
   letter-spacing: -0.025em;
+  margin: 0;
 }
 
 .app-container {
-  display: flex;
   flex: 1;
-  gap: 1.5rem;
   padding: 1.5rem 2rem;
   max-width: 1920px;
   margin: 0 auto;
   width: 100%;
 }
 
-.app-sidebar {
-  width: 340px;
-  min-width: 340px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  height: fit-content;
-  position: sticky;
-  top: 80px;
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-}
-
 .app-main {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  min-width: 0;
-}
-
-.app-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: white;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
 }
 
 .loading,

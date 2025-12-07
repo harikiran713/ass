@@ -13,19 +13,15 @@ export default function SearchBar({ onSearch }) {
   }
 
   return (
-    <div className="search-bar">
-      <h2>Search</h2>
-      <div className="search-input-wrapper">
-        <input
-          type="text"
-          placeholder="Search by Customer Name or Phone Number..."
-          value={searchTerm}
-          onChange={handleChange}
-          className="search-input"
-        />
-        <span className="search-icon">🔍</span>
-      </div>
+    <div className="search-bar-horizontal">
+      <input
+        type="text"
+        placeholder="Name, Phone no."
+        value={searchTerm}
+        onChange={handleChange}
+        className="search-input-horizontal"
+      />
+      <span className="search-icon-horizontal">🔍</span>
     </div>
   )
 }
-

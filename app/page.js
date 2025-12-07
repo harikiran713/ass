@@ -3,15 +3,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import './page.css'
 import SearchBar from '@/components/SearchBar'
-import FilterPanel from '@/components/FilterPanel'
+import FilterBar from '@/components/FilterBar'
 import SalesTable from '@/components/SalesTable'
 import Pagination from '@/components/Pagination'
-import SortDropdown from '@/components/SortDropdown'
+import SummaryCards from '@/components/SummaryCards'
 
 export default function Home() {
   const [salesData, setSalesData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [statistics, setStatistics] = useState({
+    totalUnits: 0,
+    totalAmount: 0,
+    totalDiscount: 0,
+    totalRecords: 0
+  })
   const [pagination, setPagination] = useState({
     currentPage: 1,
     pageSize: 10,
@@ -139,6 +145,12 @@ export default function Home() {
         hasNextPage: false,
         hasPreviousPage: false
       })
+      setStatistics(data.statistics || {
+        totalUnits: 0,
+        totalAmount: 0,
+        totalDiscount: 0,
+        totalRecords: 0
+      })
     } catch (err) {
       setError(err.message || 'Failed to fetch sales data')
       console.error('Error fetching sales data:', err)
@@ -188,27 +200,22 @@ export default function Home() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>TruEstate - Retail Sales Management System</h1>
+        <h1>Sales Management System</h1>
+        <SearchBar onSearch={handleSearch} />
       </header>
 
       <div className="app-container">
-        <div className="app-sidebar">
-          <SearchBar onSearch={handleSearch} />
-          <FilterPanel
+        <div className="app-main">
+          <FilterBar
             filters={filters}
             filterOptions={filterOptions}
             onFilterChange={handleFilterChange}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={handleSortChange}
           />
-        </div>
 
-        <div className="app-main">
-          <div className="app-controls">
-            <SortDropdown
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              onSortChange={handleSortChange}
-            />
-          </div>
+          <SummaryCards statistics={statistics} />
 
           {loading && <div className="loading">Loading sales data...</div>}
           {error && (
@@ -218,7 +225,8 @@ export default function Home() {
               <small style={{ marginTop: '0.5rem', display: 'block' }}>
                 Please check:
                 <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
-                  <li>CSV file exists at data/sales_data.csv</li>
+                  <li>MongoDB connection is working</li>
+                  <li>Database has been seeded (run: npm run seed)</li>
                   <li>Check browser console for more details</li>
                 </ul>
               </small>

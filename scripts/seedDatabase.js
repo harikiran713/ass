@@ -2,18 +2,15 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import csv from 'csv-parser';
-import { connectDatabase } from '../lib/config/database.js';
+import { connectDatabase, closeDatabase } from '../lib/config/database.js';
 import { getSalesCollection, createIndexes } from '../lib/models/Sales.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function seedDatabase() {
   try {
-    console.log('Connecting to database...');
+    console.log('Connecting to MongoDB...');
     await connectDatabase();
     await createIndexes();
     
@@ -84,12 +81,13 @@ async function seedDatabase() {
     }
 
     console.log(`Successfully seeded ${results.length} records into MongoDB!`);
+    await closeDatabase();
     process.exit(0);
   } catch (error) {
     console.error('Error seeding database:', error);
+    await closeDatabase();
     process.exit(1);
   }
 }
 
 seedDatabase();
-
