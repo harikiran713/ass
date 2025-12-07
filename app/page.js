@@ -131,11 +131,20 @@ export default function Home() {
       const response = await fetch(`/api/sales?${params.toString()}`)
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-        throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch sales data`)
+        let errorData;
+        try {
+          errorData = await response.json()
+        } catch (e) {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
+        }
+        throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: Failed to fetch sales data`)
       }
       
       const data = await response.json()
+      
+      if (!data || !data.data) {
+        throw new Error('Invalid response format from server')
+      }
       setSalesData(data.data || [])
       setPagination(data.pagination || {
         currentPage: 1,

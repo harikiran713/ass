@@ -174,21 +174,33 @@ export async function GET(request) {
     if (regions.length > 0) filters.regions = regions;
     if (genders.length > 0) filters.genders = genders;
     if (ageMin || ageMax) {
-      filters.ageRange = {};
+      const ageRange = {};
       if (ageMin && ageMin !== '' && !isNaN(parseInt(ageMin))) {
-        filters.ageRange.min = parseInt(ageMin);
+        ageRange.min = parseInt(ageMin);
       }
       if (ageMax && ageMax !== '' && !isNaN(parseInt(ageMax))) {
-        filters.ageRange.max = parseInt(ageMax);
+        ageRange.max = parseInt(ageMax);
+      }
+      // Only add ageRange if it has at least one value
+      if (Object.keys(ageRange).length > 0) {
+        filters.ageRange = ageRange;
       }
     }
     if (categories.length > 0) filters.categories = categories;
     if (tags.length > 0) filters.tags = tags;
     if (paymentMethods.length > 0) filters.paymentMethods = paymentMethods;
     if (dateStart || dateEnd) {
-      filters.dateRange = {};
-      if (dateStart) filters.dateRange.start = dateStart;
-      if (dateEnd) filters.dateRange.end = dateEnd;
+      const dateRange = {};
+      if (dateStart && dateStart.trim() !== '') {
+        dateRange.start = dateStart;
+      }
+      if (dateEnd && dateEnd.trim() !== '') {
+        dateRange.end = dateEnd;
+      }
+      // Only add dateRange if it has at least one value
+      if (Object.keys(dateRange).length > 0) {
+        filters.dateRange = dateRange;
+      }
     }
 
     const collection = await getSalesCollection();
@@ -197,44 +209,101 @@ export async function GET(request) {
     const query = buildQuery(filters, search);
     const sort = buildSort(sortBy, sortOrder);
 
+    // Log query for debugging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('MongoDB Query:', JSON.stringify(query, null, 2));
+    }
+
     // Calculate pagination
     const pageNum = parseInt(page);
     const size = parseInt(pageSize);
     const skip = (pageNum - 1) * size;
 
     // Get total count for pagination
-    const totalItems = await collection.countDocuments(query);
+    let totalItems = 0;
+    try {
+      totalItems = await collection.countDocuments(query);
+    } catch (countError) {
+      console.error('Error counting documents:', countError);
+      throw new Error(`Failed to count documents: ${countError.message}`);
+    }
 
     // Fetch paginated data
-    const data = await collection
-      .find(query)
-      .sort(sort)
-      .skip(skip)
-      .limit(size)
-      .toArray();
+    let data = [];
+    try {
+      data = await collection
+        .find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(size)
+        .toArray();
+    } catch (findError) {
+      console.error('Error fetching data:', findError);
+      throw new Error(`Failed to fetch data: ${findError.message}`);
+    }
 
-    // Calculate statistics for filtered data
-    const stats = await collection.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: null,
-          totalUnits: { $sum: { $toInt: '$Quantity' } },
-          totalAmount: { $sum: { $toDouble: '$Final Amount' } },
-          totalAmountBeforeDiscount: { $sum: { $toDouble: '$Total Amount' } }
-        }
-      }
-    ]).toArray();
-
-    const statistics = stats.length > 0 ? {
-      totalUnits: stats[0].totalUnits || 0,
-      totalAmount: stats[0].totalAmount || 0,
-      totalDiscount: (stats[0].totalAmountBeforeDiscount || 0) - (stats[0].totalAmount || 0)
-    } : {
+    // Calculate statistics for ALL filtered data (not just current page)
+    let statistics = {
       totalUnits: 0,
       totalAmount: 0,
       totalDiscount: 0
     };
+
+    try {
+      // Use aggregation with safe type conversion
+      const statsPipeline = [
+        { $match: query },
+        {
+          $project: {
+            quantity: {
+              $cond: [
+                { $eq: [{ $type: '$Quantity' }, 'number'] },
+                '$Quantity',
+                { $toInt: { $ifNull: ['$Quantity', 0] } }
+              ]
+            },
+            finalAmount: {
+              $cond: [
+                { $eq: [{ $type: '$Final Amount' }, 'number'] },
+                '$Final Amount',
+                { $toDouble: { $ifNull: ['$Final Amount', 0] } }
+              ]
+            },
+            totalAmount: {
+              $cond: [
+                { $eq: [{ $type: '$Total Amount' }, 'number'] },
+                '$Total Amount',
+                { $toDouble: { $ifNull: ['$Total Amount', 0] } }
+              ]
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalUnits: { $sum: '$quantity' },
+            totalAmount: { $sum: '$finalAmount' },
+            totalAmountBeforeDiscount: { $sum: '$totalAmount' }
+          }
+        }
+      ];
+
+      const stats = await collection.aggregate(statsPipeline).toArray();
+
+      if (stats.length > 0 && stats[0]) {
+        const totalBeforeDiscount = stats[0].totalAmountBeforeDiscount || 0;
+        const totalAfterDiscount = stats[0].totalAmount || 0;
+        statistics = {
+          totalUnits: stats[0].totalUnits || 0,
+          totalAmount: totalAfterDiscount,
+          totalDiscount: Math.max(0, totalBeforeDiscount - totalAfterDiscount)
+        };
+      }
+    } catch (statsError) {
+      console.error('Error calculating statistics:', statsError);
+      console.error('Stats error details:', statsError.message);
+      // Continue without statistics if aggregation fails - don't break the request
+    }
 
     // Return response
     return NextResponse.json({
@@ -254,8 +323,13 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error('Error processing request:', error);
+    console.error('Error stack:', error.stack);
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      { 
+        error: 'Internal server error', 
+        message: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
