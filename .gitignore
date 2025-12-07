@@ -37,4 +37,5 @@ next-env.d.ts
 *.csv
 data/*.csv
 **/sales_data.csv
+data/sales_data.csv
 
