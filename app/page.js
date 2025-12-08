@@ -45,67 +45,17 @@ export default function Home() {
   const [sortBy, setSortBy] = useState('date')
   const [sortOrder, setSortOrder] = useState('desc')
 
-  // Filter options
-  const [filterOptions, setFilterOptions] = useState({
-    regions: [],
-    genders: [],
-    categories: [],
-    tags: [],
-    paymentMethods: [],
-    ageRange: { min: 0, max: 100 },
-    dateRange: { min: '', max: '' }
+  // Filter options - Hardcoded based on the data in screenshots
+  const [filterOptions] = useState({
+    regions: ['East', 'Central', 'West', 'North', 'South'],
+    genders: ['Male', 'Female', 'Other'],
+    categories: ['Clothing', 'Electronics', 'Beauty'],
+    tags: ['Premium', 'Sale', 'New Arrival', 'Best Seller', 'Limited Edition', 'Trending', 'Popular'],
+    paymentMethods: ['Wallet', 'Credit Card', 'UPI', 'Debit Card', 'Net Banking'],
+    ageRange: { min: 18, max: 80 },
+    dateRange: { min: '2023-01-01', max: '2023-12-31' }
   })
-  const [filterOptionsLoading, setFilterOptionsLoading] = useState(true)
-
-  // Fetch filter options on mount
-  useEffect(() => {
-    setFilterOptionsLoading(true)
-    fetch('/api/filters')
-      .then(async response => {
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-          throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch filter options`)
-        }
-        return response.json()
-      })
-      .then(data => {
-        console.log('Filter options received from API:', data) // Debug log
-        
-        // Check if we got an error response
-        if (data.error) {
-          console.error('API returned error:', data.error)
-          return
-        }
-        
-        // Ensure all properties exist with defaults
-        const options = {
-          regions: Array.isArray(data.regions) ? data.regions.filter(Boolean) : [],
-          genders: Array.isArray(data.genders) ? data.genders.filter(Boolean) : [],
-          categories: Array.isArray(data.categories) ? data.categories.filter(Boolean) : [],
-          tags: Array.isArray(data.tags) ? data.tags.filter(Boolean) : [],
-          paymentMethods: Array.isArray(data.paymentMethods) ? data.paymentMethods.filter(Boolean) : [],
-          ageRange: data.ageRange || { min: 0, max: 100 },
-          dateRange: data.dateRange || { min: '', max: '' }
-        }
-        console.log('Setting filter options:', options) // Debug log
-        console.log('Options counts:', {
-          regions: options.regions.length,
-          genders: options.genders.length,
-          categories: options.categories.length,
-          tags: options.tags.length,
-          paymentMethods: options.paymentMethods.length
-        })
-        setFilterOptions(options)
-        setFilterOptionsLoading(false)
-      })
-      .catch(err => {
-        console.error('Error fetching filter options:', err)
-        console.error('Error details:', err.message, err.stack)
-        setFilterOptionsLoading(false)
-        // Don't set main error, just log it - filters will show empty
-        // setError(`Failed to load filters: ${err.message}`)
-      })
-  }, [])
+  const [filterOptionsLoading] = useState(false)
 
   // Fetch sales data
   const fetchSalesData = useCallback(async (page = 1) => {
