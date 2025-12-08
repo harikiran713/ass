@@ -55,9 +55,11 @@ export default function Home() {
     ageRange: { min: 0, max: 100 },
     dateRange: { min: '', max: '' }
   })
+  const [filterOptionsLoading, setFilterOptionsLoading] = useState(true)
 
   // Fetch filter options on mount
   useEffect(() => {
+    setFilterOptionsLoading(true)
     fetch('/api/filters')
       .then(async response => {
         if (!response.ok) {
@@ -67,21 +69,41 @@ export default function Home() {
         return response.json()
       })
       .then(data => {
+        console.log('Filter options received from API:', data) // Debug log
+        
+        // Check if we got an error response
+        if (data.error) {
+          console.error('API returned error:', data.error)
+          return
+        }
+        
         // Ensure all properties exist with defaults
-        setFilterOptions({
-          regions: data.regions || [],
-          genders: data.genders || [],
-          categories: data.categories || [],
-          tags: data.tags || [],
-          paymentMethods: data.paymentMethods || [],
+        const options = {
+          regions: Array.isArray(data.regions) ? data.regions.filter(Boolean) : [],
+          genders: Array.isArray(data.genders) ? data.genders.filter(Boolean) : [],
+          categories: Array.isArray(data.categories) ? data.categories.filter(Boolean) : [],
+          tags: Array.isArray(data.tags) ? data.tags.filter(Boolean) : [],
+          paymentMethods: Array.isArray(data.paymentMethods) ? data.paymentMethods.filter(Boolean) : [],
           ageRange: data.ageRange || { min: 0, max: 100 },
           dateRange: data.dateRange || { min: '', max: '' }
+        }
+        console.log('Setting filter options:', options) // Debug log
+        console.log('Options counts:', {
+          regions: options.regions.length,
+          genders: options.genders.length,
+          categories: options.categories.length,
+          tags: options.tags.length,
+          paymentMethods: options.paymentMethods.length
         })
+        setFilterOptions(options)
+        setFilterOptionsLoading(false)
       })
       .catch(err => {
         console.error('Error fetching filter options:', err)
-        setError(`Failed to load filters: ${err.message}`)
-        // Keep default values on error
+        console.error('Error details:', err.message, err.stack)
+        setFilterOptionsLoading(false)
+        // Don't set main error, just log it - filters will show empty
+        // setError(`Failed to load filters: ${err.message}`)
       })
   }, [])
 
@@ -218,6 +240,7 @@ export default function Home() {
           <FilterBar
             filters={filters}
             filterOptions={filterOptions}
+            filterOptionsLoading={filterOptionsLoading}
             onFilterChange={handleFilterChange}
             sortBy={sortBy}
             sortOrder={sortOrder}

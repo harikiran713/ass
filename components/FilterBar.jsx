@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import './FilterBar.css'
 
-export default function FilterBar({ filters, filterOptions, onFilterChange, sortBy, sortOrder, onSortChange }) {
+export default function FilterBar({ filters, filterOptions, filterOptionsLoading = false, onFilterChange, sortBy, sortOrder, onSortChange }) {
   const [openDropdown, setOpenDropdown] = useState(null)
 
   // Close dropdown on Escape key press
@@ -74,6 +74,11 @@ export default function FilterBar({ filters, filterOptions, onFilterChange, sort
       ? (filterType === 'ageRange' && (filters.ageRange?.min || filters.ageRange?.max)) ||
         (filterType === 'dateRange' && (filters.dateRange?.start || filters.dateRange?.end))
       : activeValues.length > 0
+    
+    // Debug: Log options to see what's being received
+    if (isOpen && !isRange) {
+      console.log(`FilterDropdown ${filterType}:`, { options, optionsLength: options?.length, optionsType: typeof options })
+    }
 
     return (
       <div className="filter-dropdown-wrapper">
@@ -130,20 +135,27 @@ export default function FilterBar({ filters, filterOptions, onFilterChange, sort
                 </div>
               ) : (
                 <div className="filter-options">
-                  {options && options.length > 0 ? (
-                    options.map(option => (
-                      <label key={option} className="filter-option" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={activeValues.includes(option)}
-                          onChange={() => handleMultiSelect(filterType, option)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <span>{option}</span>
-                      </label>
-                    ))
+                  {options && Array.isArray(options) && options.length > 0 ? (
+                    options.map(option => {
+                      // Ensure option is a valid string/number
+                      const optionValue = String(option || '').trim()
+                      if (!optionValue) return null
+                      return (
+                        <label key={optionValue} className="filter-option" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={activeValues.includes(optionValue)}
+                            onChange={() => handleMultiSelect(filterType, optionValue)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span>{optionValue}</span>
+                        </label>
+                      )
+                    }).filter(Boolean)
                   ) : (
-                    <div className="filter-option-empty">No options available</div>
+                    <div className="filter-option-empty">
+                      {filterOptionsLoading ? 'Loading options...' : 'No options available. Please check database connection.'}
+                    </div>
                   )}
                 </div>
               )}
