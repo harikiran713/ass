@@ -1,10 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './FilterBar.css'
 
 export default function FilterBar({ filters, filterOptions, onFilterChange, sortBy, sortOrder, onSortChange }) {
   const [openDropdown, setOpenDropdown] = useState(null)
+
+  // Close dropdown on Escape key press
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && openDropdown) {
+        setOpenDropdown(null)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [openDropdown])
 
   const handleMultiSelect = (filterType, value) => {
     const currentValues = filters[filterType] || []
@@ -82,14 +93,15 @@ export default function FilterBar({ filters, filterOptions, onFilterChange, sort
         {isOpen && (
           <>
             <div className="dropdown-overlay" onClick={() => setOpenDropdown(null)} />
-            <div className="filter-dropdown-menu">
+            <div className="filter-dropdown-menu" onClick={(e) => e.stopPropagation()}>
               {isRange && filterType === 'ageRange' ? (
-                <div className="range-inputs">
+                <div className="range-inputs" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="number"
                     placeholder="Min"
                     value={filters.ageRange?.min || ''}
                     onChange={(e) => onFilterChange('ageRange', { ...filters.ageRange, min: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <span>-</span>
                   <input
@@ -97,34 +109,42 @@ export default function FilterBar({ filters, filterOptions, onFilterChange, sort
                     placeholder="Max"
                     value={filters.ageRange?.max || ''}
                     onChange={(e) => onFilterChange('ageRange', { ...filters.ageRange, max: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
               ) : isRange && filterType === 'dateRange' ? (
-                <div className="range-inputs">
+                <div className="range-inputs" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="date"
                     value={filters.dateRange?.start || ''}
                     onChange={(e) => onFilterChange('dateRange', { ...filters.dateRange, start: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <span>to</span>
                   <input
                     type="date"
                     value={filters.dateRange?.end || ''}
                     onChange={(e) => onFilterChange('dateRange', { ...filters.dateRange, end: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
               ) : (
                 <div className="filter-options">
-                  {options.map(option => (
-                    <label key={option} className="filter-option">
-                      <input
-                        type="checkbox"
-                        checked={activeValues.includes(option)}
-                        onChange={() => handleMultiSelect(filterType, option)}
-                      />
-                      <span>{option}</span>
-                    </label>
-                  ))}
+                  {options && options.length > 0 ? (
+                    options.map(option => (
+                      <label key={option} className="filter-option" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={activeValues.includes(option)}
+                          onChange={() => handleMultiSelect(filterType, option)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span>{option}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <div className="filter-option-empty">No options available</div>
+                  )}
                 </div>
               )}
             </div>
@@ -205,29 +225,41 @@ export default function FilterBar({ filters, filterOptions, onFilterChange, sort
         {openDropdown === 'sort' && (
           <>
             <div className="dropdown-overlay" onClick={() => setOpenDropdown(null)} />
-            <div className="filter-dropdown-menu">
+            <div className="filter-dropdown-menu" onClick={(e) => e.stopPropagation()}>
               <div className="filter-options">
-                <label className="filter-option">
+                <label className="filter-option" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     checked={sortBy === 'date'}
-                    onChange={() => onSortChange('date')}
+                    onChange={() => {
+                      onSortChange('date');
+                      setOpenDropdown(null);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <span>Date (Newest First)</span>
                 </label>
-                <label className="filter-option">
+                <label className="filter-option" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     checked={sortBy === 'quantity'}
-                    onChange={() => onSortChange('quantity')}
+                    onChange={() => {
+                      onSortChange('quantity');
+                      setOpenDropdown(null);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <span>Quantity</span>
                 </label>
-                <label className="filter-option">
+                <label className="filter-option" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="radio"
                     checked={sortBy === 'customerName'}
-                    onChange={() => onSortChange('customerName')}
+                    onChange={() => {
+                      onSortChange('customerName');
+                      setOpenDropdown(null);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <span>Customer Name (A-Z)</span>
                 </label>
