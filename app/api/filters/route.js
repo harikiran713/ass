@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { getSalesCollection } from '@/lib/models/Sales';
 import { connectDatabase } from '@/lib/config/database';
 
+// Force dynamic rendering - prevent static generation
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Initialize database connection
 let isConnecting = false;
 let isConnected = false;
